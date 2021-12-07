@@ -6,8 +6,9 @@ package main
 
 import (
 	"fmt"
-	"github.ibm.com/open-z/go-recordio"
 	"os"
+
+	"github.com/ibmruntimes/go-recordio"
 )
 
 const __KEY_EQ = 3

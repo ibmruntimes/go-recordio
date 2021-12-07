@@ -1,3 +1,3 @@
-module github.ibm.com/open-z/recordio
+module github.com/ibmruntimes/go-recordio
 
 go 1.16
