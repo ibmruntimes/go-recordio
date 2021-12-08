@@ -6,7 +6,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
+
 	"github.com/ibmruntimes/go-recordio"
 )
 
@@ -38,6 +40,7 @@ var buff = FixedHeader_T{}
 func main() {
 	var num int
 	var numu int
+	log.SetFlags(log.Lshortfile)
 	buffbytes := recordio.ConvertStructToSlice(&buff)
 	myBigSlice := make([]byte, 100, 100)
 	mySmallSlice := make([]byte, 20, 20)
@@ -49,15 +52,21 @@ func main() {
 	sliceBig := recordio.ConvertStringToSlice(Dname, myBigSlice)
 	sliceSmall := recordio.ConvertStringToSlice("rb+,type=record", mySmallSlice)
 	stream = recordio.Fopen(sliceBig, sliceSmall)
-	if !stream.Nil() {
-		fmt.Println("nonzero stream")
+	if stream.Nil() {
+		log.Fatal("zero stream")
 	}
 	stream = recordio.Freopen(sliceBig, sliceSmall, stream)
+	if stream.Nil() {
+		log.Fatal("zero stream")
+	}
 	copy(buff.key[:], "KEY")
 	copy(buff.val[:], "qrt")
 	stream.Fwrite(buffbytes)
 	stream.Fclose()
 	stream = recordio.Fopen(sliceBig, sliceSmall)
+	if stream.Nil() {
+		log.Fatal("zero stream")
+	}
 	num = stream.Fread(buffbytes)
 	eofp := stream.Feof()
 	err := stream.Ferror()
@@ -72,6 +81,9 @@ func main() {
 	stream.Fwrite(myBigSlice[:buffSize])
 	stream.Fclose()
 	stream = recordio.Fopen(sliceBig, sliceSmall)
+	if stream.Nil() {
+		log.Fatal("zero stream")
+	}
 	for {
 		num = stream.Fread(myBigSlice)
 		if stream.Feof() {
