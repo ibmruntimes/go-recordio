@@ -7,7 +7,6 @@ package main
 import (
 	"fmt"
 	"os"
-
 	"github.com/ibmruntimes/go-recordio"
 )
 
