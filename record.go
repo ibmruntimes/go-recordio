@@ -4,7 +4,7 @@
 
 // +build zos
 
-package recordio
+package zosrecordio
 
 import (
 	"reflect"
@@ -59,7 +59,7 @@ func (rs RecordStream) Flocate(key []byte, options int) int {
 // Fread reads a record.
 // If the buffer is not big enough, the record will be truncated.
 // The actual number of bytes read is returned
-func  (rs RecordStream) Fread(buffer []byte) int {
+func (rs RecordStream) Fread(buffer []byte) int {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x78a<<4, //fread
 		[]uintptr{uintptr(unsafe.Pointer(&buffer[0])),
 			uintptr(1),
@@ -70,21 +70,21 @@ func  (rs RecordStream) Fread(buffer []byte) int {
 
 // Fdelrec deletes the last read record
 // Returns 0 if successful, otherwise non-zero
-func  (rs RecordStream) Fdelrec() int {
+func (rs RecordStream) Fdelrec() int {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x247<<4, //fdelrec
 		[]uintptr{rs.s})
 	return int(ret)
 }
 
 // Feof returns the last set EOF flag value
-func  (rs RecordStream) Feof() bool {
+func (rs RecordStream) Feof() bool {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x04D<<4, //feof
 		[]uintptr{rs.s})
 	return int(ret) != 0
 }
 
 // Ferror returns the last set error value
-func  (rs RecordStream) Ferror() error {
+func (rs RecordStream) Ferror() error {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x04A<<4, //feof
 		[]uintptr{rs.s})
 	if int(ret) == 0 {
@@ -96,7 +96,7 @@ func  (rs RecordStream) Ferror() error {
 
 // Fupdate updates the last read record to be the new record value in buffer
 // It returns the size of the updated record
-func  (rs RecordStream) Fupdate(buffer []byte) int {
+func (rs RecordStream) Fupdate(buffer []byte) int {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x0B5<<4, //fupdate
 		[]uintptr{uintptr(unsafe.Pointer(&buffer[0])),
 			uintptr(len(buffer)),
@@ -107,7 +107,7 @@ func  (rs RecordStream) Fupdate(buffer []byte) int {
 //Fwrite writes one record contained in buffer to the rs stream.
 // It returns the number of bytes written.
 // Note, teh size of the record is the size of the slice.
-func  (rs RecordStream) Fwrite(buffer []byte) int {
+func (rs RecordStream) Fwrite(buffer []byte) int {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x78b<<4, //fwrite
 		[]uintptr{uintptr(unsafe.Pointer(&buffer[0])),
 			uintptr(1),
@@ -117,7 +117,7 @@ func  (rs RecordStream) Fwrite(buffer []byte) int {
 }
 
 // Fclose closes the stream. Returns 0 if successful, otherwise EOF.
-func  (rs RecordStream) Fclose() int {
+func (rs RecordStream) Fclose() int {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x067<<4, //fclose
 		[]uintptr{rs.s})
 	return int(ret)
@@ -156,7 +156,7 @@ func ConvertStructToSlice(i interface{}) (slice []byte) {
 // Thus the following sequence leaves buffp as a pointer to a FixedHeader struct
 // that shares storage with myBigSlice[:buffSize]:
 // var buffp *FixedHeader_T
-// buffp_, buffSize := recordio.ConvertSliceToStruct(buffp, myBigSlice)
+// buffp_, buffSize := zosrecordio.ConvertSliceToStruct(buffp, myBigSlice)
 // buffp = buffp_.(*FixedHeader_T)
 // Note: if the  incoming slice isn't big enough, it returns <nil, 0>.
 func ConvertSliceToStruct(i interface{}, bi []byte) (interface{}, int) {
@@ -169,4 +169,29 @@ func ConvertSliceToStruct(i interface{}, bi []byte) (interface{}, int) {
 	} else {
 		return result, size
 	}
+}
+
+// The equivalent of STDIN
+func Stdin() (rs RecordStream) {
+	rs.s = stdio_filep(0)
+	return rs
+}
+
+// The equivalent of STDOUT
+func Stdout() (rs RecordStream) {
+	rs.s = stdio_filep(1)
+	return rs
+}
+
+// The equivalent of STDERR
+func Stderr() (rs RecordStream) {
+	rs.s = stdio_filep(2)
+	return rs
+}
+
+func stdio_filep(fd int32) uintptr {
+	return uintptr(*(*uint64)(unsafe.Pointer(uintptr(*(*uint64)(
+		unsafe.Pointer(uintptr(*(*uint64)(unsafe.Pointer(uintptr(
+			uint64(*(*uint32)(unsafe.Pointer(uintptr(1208)))) + 80))) +
+			uint64((fd+2)<<3))))))))
 }

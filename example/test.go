@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-
-	"github.com/ibmruntimes/go-recordio"
 )
 
 const __KEY_EQ = 3
@@ -17,7 +15,7 @@ const FIXED_PRODID_SIZE = 4
 const FIXED_KEY_SIZE = 16
 const FIXED_VAL_SIZE = 16
 
-var stream = recordio.RecordStream{}
+var stream = zosrecordio.RecordStream{}
 
 type FixedHeader_T struct {
 	inactive      byte
@@ -41,7 +39,7 @@ func main() {
 	var num int
 	var numu int
 	log.SetFlags(log.Lshortfile)
-	buffbytes := recordio.ConvertStructToSlice(&buff)
+	buffbytes := zosrecordio.ConvertStructToSlice(&buff)
 	myBigSlice := make([]byte, 100, 100)
 	mySmallSlice := make([]byte, 20, 20)
 	if len(os.Args) < 2 {
@@ -49,13 +47,13 @@ func main() {
 		return
 	}
 	Dname := os.Args[1]
-	sliceBig := recordio.ConvertStringToSlice(Dname, myBigSlice)
-	sliceSmall := recordio.ConvertStringToSlice("rb+,type=record", mySmallSlice)
-	stream = recordio.Fopen(sliceBig, sliceSmall)
+	sliceBig := zosrecordio.ConvertStringToSlice(Dname, myBigSlice)
+	sliceSmall := zosrecordio.ConvertStringToSlice("rb+,type=record", mySmallSlice)
+	stream = zosrecordio.Fopen(sliceBig, sliceSmall)
 	if stream.Nil() {
 		log.Fatal("zero stream")
 	}
-	stream = recordio.Freopen(sliceBig, sliceSmall, stream)
+	stream = zosrecordio.Freopen(sliceBig, sliceSmall, stream)
 	if stream.Nil() {
 		log.Fatal("zero stream")
 	}
@@ -63,7 +61,7 @@ func main() {
 	copy(buff.val[:], "qrt")
 	stream.Fwrite(buffbytes)
 	stream.Fclose()
-	stream = recordio.Fopen(sliceBig, sliceSmall)
+	stream = zosrecordio.Fopen(sliceBig, sliceSmall)
 	if stream.Nil() {
 		log.Fatal("zero stream")
 	}
@@ -73,14 +71,14 @@ func main() {
 	fmt.Println("--", num, string(buff.key[:]), string(buff.val[:]), eofp, err)
 	myBigSlice = make([]byte, 100, 100)
 	var buffp *FixedHeader_T
-	buffp_, buffSize := recordio.ConvertSliceToStruct(buffp, myBigSlice)
+	buffp_, buffSize := zosrecordio.ConvertSliceToStruct(buffp, myBigSlice)
 	buffp = buffp_.(*FixedHeader_T)
 	fmt.Println("The size of the struct is", buffSize)
 	copy(buffp.key[:], "KEY_AWAY")
 	copy(buffp.val[:], "qrs")
 	stream.Fwrite(myBigSlice[:buffSize])
 	stream.Fclose()
-	stream = recordio.Fopen(sliceBig, sliceSmall)
+	stream = zosrecordio.Fopen(sliceBig, sliceSmall)
 	if stream.Nil() {
 		log.Fatal("zero stream")
 	}
@@ -96,7 +94,7 @@ func main() {
 	if fl == 0 {
 		fmt.Println("good flocate")
 	}
-	fmt.Println("recordio.Flocate:", fl)
+	fmt.Println("zosrecordio.Flocate:", fl)
 	num = stream.Fread(buffbytes)
 	buff.val[0] = 'Y'
 	buff.val[1] = 'X'
@@ -104,7 +102,7 @@ func main() {
 	fmt.Println(numu)
 	numu = stream.Fclose()
 	fmt.Println("close: ", numu)
-	stream = recordio.Fopen(sliceBig, sliceSmall)
+	stream = zosrecordio.Fopen(sliceBig, sliceSmall)
 	if !stream.Nil() {
 		fmt.Println("nonzero stream")
 	}
