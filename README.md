@@ -1,5 +1,5 @@
 # Scope
-Recordio in Go: a Go module for record i/o in VSAM databases directly from Go (no need for CGO)
+Record I/O in Go: a Go module for record I/O in VSAM databases directly from Go (no need for cgo)
 
 # Usage
 
@@ -98,4 +98,9 @@ In the example directory is a program that can be built with "go build test.go".
 ./test "//'HLQ.TESTDB.KEY.PATH'"
 ```
 
-You can create such a VSAM database using the crtvsamxsysvar script from the source: git@github.com:MikeFultonDev/samples.git, branch Xsysvar. Note: to use this you also need Z Open Automation Utilities (ZOAU) installed.
+You can create such a VSAM database using the crtvsamxsysvar script from the source: 
+```
+git@github.com:MikeFultonDev/samples.git, branch Xsysvar.
+
+```
+Note: to use this you also need Z Open Automation Utilities (ZOAU) installed.
