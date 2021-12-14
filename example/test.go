@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/ibmruntimes/go-recordio"
+	"github.com/ibmruntimes/go-recordio/utils"
 )
 
 const __KEY_EQ = 3
@@ -39,21 +42,18 @@ func main() {
 	var num int
 	var numu int
 	log.SetFlags(log.Lshortfile)
-	buffbytes := zosrecordio.ConvertStructToSlice(&buff)
+	buffbytes := utils.ConvertStructToSlice(&buff)
 	myBigSlice := make([]byte, 100, 100)
-	mySmallSlice := make([]byte, 20, 20)
 	if len(os.Args) < 2 {
 		fmt.Println("Provide an argument of the form \"//'HLQ.DBNAME.KEY.PATH'\"")
 		return
 	}
 	Dname := os.Args[1]
-	sliceBig := zosrecordio.ConvertStringToSlice(Dname, myBigSlice)
-	sliceSmall := zosrecordio.ConvertStringToSlice("rb+,type=record", mySmallSlice)
-	stream = zosrecordio.Fopen(sliceBig, sliceSmall)
+	stream = zosrecordio.Fopen(Dname, "rb+,type=record")
 	if stream.Nil() {
 		log.Fatal("zero stream")
 	}
-	stream = zosrecordio.Freopen(sliceBig, sliceSmall, stream)
+	stream = zosrecordio.Freopen(Dname,"rb+,type=record",stream)
 	if stream.Nil() {
 		log.Fatal("zero stream")
 	}
@@ -61,7 +61,7 @@ func main() {
 	copy(buff.val[:], "qrt")
 	stream.Fwrite(buffbytes)
 	stream.Fclose()
-	stream = zosrecordio.Fopen(sliceBig, sliceSmall)
+	stream = zosrecordio.Fopen(Dname,"rb+,type=record")
 	if stream.Nil() {
 		log.Fatal("zero stream")
 	}
@@ -71,14 +71,14 @@ func main() {
 	fmt.Println("--", num, string(buff.key[:]), string(buff.val[:]), eofp, err)
 	myBigSlice = make([]byte, 100, 100)
 	var buffp *FixedHeader_T
-	buffp_, buffSize := zosrecordio.ConvertSliceToStruct(buffp, myBigSlice)
+	buffp_, buffSize := utils.ConvertSliceToStruct(buffp, myBigSlice)
 	buffp = buffp_.(*FixedHeader_T)
 	fmt.Println("The size of the struct is", buffSize)
 	copy(buffp.key[:], "KEY_AWAY")
 	copy(buffp.val[:], "qrs")
 	stream.Fwrite(myBigSlice[:buffSize])
 	stream.Fclose()
-	stream = zosrecordio.Fopen(sliceBig, sliceSmall)
+	stream = zosrecordio.Fopen(Dname,"rb+,type=record")
 	if stream.Nil() {
 		log.Fatal("zero stream")
 	}
@@ -102,7 +102,7 @@ func main() {
 	fmt.Println(numu)
 	numu = stream.Fclose()
 	fmt.Println("close: ", numu)
-	stream = zosrecordio.Fopen(sliceBig, sliceSmall)
+	stream = zosrecordio.Fopen(Dname,"rb+,type=record")
 	if !stream.Nil() {
 		fmt.Println("nonzero stream")
 	}

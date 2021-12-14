@@ -3,18 +3,12 @@ package main
 import (
 	"bufio"
 	"os"
-	"runtime"
 	"sync"
 	"syscall"
 
+	"github.com/ibmruntimes/go-recordio"
 	"github.com/ibmruntimes/go-recordio/utils"
 )
-
-func dup2(oldfd uintptr, newfd uintptr) uintptr {
-	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x183<<4,
-		[]uintptr{oldfd, newfd})
-	return ret
-}
 
 func readFdWriteIO(wg *sync.WaitGroup, fd uintptr, stdio int32) {
 	defer wg.Done()
@@ -38,7 +32,7 @@ func redirect(wgp *sync.WaitGroup) {
 	r, w, err := os.Pipe()
 	if err == nil {
 		syscall.Close(2)
-		nfd := dup2(w.Fd(), 2)
+		nfd := utils.Dup2(w.Fd(), 2)
 		if nfd == 2 {
 			syscall.Close(int(w.Fd()))
 			wg.Add(1)
@@ -52,7 +46,7 @@ func redirect(wgp *sync.WaitGroup) {
 	r, w, err = os.Pipe()
 	if err == nil {
 		syscall.Close(1)
-		nfd := dup2(w.Fd(), 1)
+		nfd := utils.Dup2(w.Fd(), 1)
 		if nfd == 1 {
 			syscall.Close(int(w.Fd()))
 			wg.Add(1)

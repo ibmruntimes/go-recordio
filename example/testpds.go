@@ -7,21 +7,15 @@ package main
 import (
 	"fmt"
 	"os"
-	"runtime"
 
-	"github.ibm.com/open-z/recordio"
-	"github.ibm.com/open-z/recordio/utils"
+	"github.com/ibmruntimes/go-recordio"
+	"github.com/ibmruntimes/go-recordio/utils"
 )
 
-func PrintError() {
-	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x712<<4, //perror()
-		[]uintptr{})
-}
-
 func main() {
-	fh := recordio.Fopen([]byte("//'SYS1.MACLIB(EXCP)'\x00"), []byte("rb, lrecl=80, blksize=80, recfm=fb, type=record\x00"))
+	fh := zosrecordio.Fopen("//'SYS1.MACLIB(EXCP)'", "rb, lrecl=80, blksize=80, recfm=fb, type=record")
 	if fh.Nil() {
-		PrintError()
+		utils.Perror()
 		os.Exit(1)
 	}
 	defer fh.Fclose()
@@ -35,6 +29,6 @@ func main() {
 		bytes = fh.Fread(line[:])
 	}
 	if fh.Ferror() != nil {
-		PrintError()
+		utils.Perror()
 	}
 }

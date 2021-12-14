@@ -4,6 +4,10 @@
 
 package main
 
+import (
+	"github.com/ibmruntimes/go-recordio"
+)
+
 func main() {
 	var line [132]byte
 	bytes := zosrecordio.Stdin().Fread(line[:])
