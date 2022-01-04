@@ -4,10 +4,9 @@
 
 // +build zos
 
-package recordio
+package zosrecordio
 
 import (
-	"reflect"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -25,22 +24,24 @@ func (rs RecordStream) Nil() bool {
 	return rs.s == 0
 }
 
-// Fopen takes a name and mode as byte slices and returns a RecordStream.
-// Note that the strings encoded in thee slices must be null terminated.
-// The utility function ConvertStringToSlice automatically null-terminates.
-func Fopen(fname []byte, mode []byte) (rs RecordStream) {
+// Fopen takes a name and mode as strings  and returns a RecordStream.
+func Fopen(fname string, mode string) (rs RecordStream) {
+	fnameBytes := []byte(fname + "\x00")
+	modeBytes := []byte(mode + "\x00")
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x753<<4, //fopen
-		[]uintptr{uintptr(unsafe.Pointer(&fname[0])),
-			uintptr(unsafe.Pointer(&mode[0]))})
+		[]uintptr{uintptr(unsafe.Pointer(&fnameBytes[0])),
+			uintptr(unsafe.Pointer(&modeBytes[0]))})
 	rs.s = ret
 	return rs
 }
 
 // Freopen behaves the same as Fopen, but takes a previously used RecordStream
-func Freopen(fname []byte, mode []byte, rs RecordStream) (rso RecordStream) {
+func Freopen(fname string, mode string, rs RecordStream) (rso RecordStream) {
+	fnameBytes := []byte(fname + "\x00")
+	modeBytes := []byte(mode + "\x00")
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x754<<4, //freopen
-		[]uintptr{uintptr(unsafe.Pointer(&fname[0])),
-			uintptr(unsafe.Pointer(&mode[0])),
+		[]uintptr{uintptr(unsafe.Pointer(&fnameBytes[0])),
+			uintptr(unsafe.Pointer(&modeBytes[0])),
 			rs.s})
 	rso.s = ret
 	return rso
@@ -59,7 +60,7 @@ func (rs RecordStream) Flocate(key []byte, options int) int {
 // Fread reads a record.
 // If the buffer is not big enough, the record will be truncated.
 // The actual number of bytes read is returned
-func  (rs RecordStream) Fread(buffer []byte) int {
+func (rs RecordStream) Fread(buffer []byte) int {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x78a<<4, //fread
 		[]uintptr{uintptr(unsafe.Pointer(&buffer[0])),
 			uintptr(1),
@@ -70,21 +71,21 @@ func  (rs RecordStream) Fread(buffer []byte) int {
 
 // Fdelrec deletes the last read record
 // Returns 0 if successful, otherwise non-zero
-func  (rs RecordStream) Fdelrec() int {
+func (rs RecordStream) Fdelrec() int {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x247<<4, //fdelrec
 		[]uintptr{rs.s})
 	return int(ret)
 }
 
 // Feof returns the last set EOF flag value
-func  (rs RecordStream) Feof() bool {
+func (rs RecordStream) Feof() bool {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x04D<<4, //feof
 		[]uintptr{rs.s})
 	return int(ret) != 0
 }
 
 // Ferror returns the last set error value
-func  (rs RecordStream) Ferror() error {
+func (rs RecordStream) Ferror() error {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x04A<<4, //feof
 		[]uintptr{rs.s})
 	if int(ret) == 0 {
@@ -96,7 +97,7 @@ func  (rs RecordStream) Ferror() error {
 
 // Fupdate updates the last read record to be the new record value in buffer
 // It returns the size of the updated record
-func  (rs RecordStream) Fupdate(buffer []byte) int {
+func (rs RecordStream) Fupdate(buffer []byte) int {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x0B5<<4, //fupdate
 		[]uintptr{uintptr(unsafe.Pointer(&buffer[0])),
 			uintptr(len(buffer)),
@@ -107,7 +108,7 @@ func  (rs RecordStream) Fupdate(buffer []byte) int {
 //Fwrite writes one record contained in buffer to the rs stream.
 // It returns the number of bytes written.
 // Note, teh size of the record is the size of the slice.
-func  (rs RecordStream) Fwrite(buffer []byte) int {
+func (rs RecordStream) Fwrite(buffer []byte) int {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x78b<<4, //fwrite
 		[]uintptr{uintptr(unsafe.Pointer(&buffer[0])),
 			uintptr(1),
@@ -117,56 +118,33 @@ func  (rs RecordStream) Fwrite(buffer []byte) int {
 }
 
 // Fclose closes the stream. Returns 0 if successful, otherwise EOF.
-func  (rs RecordStream) Fclose() int {
+func (rs RecordStream) Fclose() int {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x067<<4, //fclose
 		[]uintptr{rs.s})
 	return int(ret)
 }
 
-// ConvertStringToSlice copies the string into the given slice.
-// Always includeds a null terminator in the copy.
-// Returns a new empty slice if the string doesn't fit.
-func ConvertStringToSlice(s string, bi []byte) (bo []byte) {
-	size := len(s)
-	if size < cap(bi) {
-		copy(bi[:size], s)
-		bi[size] = 0
-		return bi[:size+1]
-	} else {
-		return []byte{}
-	}
+// The equivalent of STDIN
+func Stdin() (rs RecordStream) {
+	rs.s = stdio_filep(0)
+	return rs
 }
 
-// ConvertStructToSlice returns a byte slice that shares storage
-// with the incoming struct. The length of the slice will be
-// exactly the size of the struct.
-func ConvertStructToSlice(i interface{}) (slice []byte) {
-	var size int
-	var ptr unsafe.Pointer
-	ptr = unsafe.Pointer(reflect.ValueOf(i).Elem().UnsafeAddr())
-	size = int(reflect.ValueOf(i).Elem().Type().Size())
-	data := (*(*[1<<31 - 1]byte)(ptr))[:size]
-	return data
+// The equivalent of STDOUT
+func Stdout() (rs RecordStream) {
+	rs.s = stdio_filep(1)
+	return rs
 }
 
-// ConvertSliceToStruc returns an interface that can be type asserted to be the
-// same type as the incoming pointer to struct "i".
-// The pointer that results from such a type assertion will share storage
-// with the incoming byte slice "bi". The struct size is the second returned value.
-// Thus the following sequence leaves buffp as a pointer to a FixedHeader struct
-// that shares storage with myBigSlice[:buffSize]:
-// var buffp *FixedHeader_T
-// buffp_, buffSize := recordio.ConvertSliceToStruct(buffp, myBigSlice)
-// buffp = buffp_.(*FixedHeader_T)
-// Note: if the  incoming slice isn't big enough, it returns <nil, 0>.
-func ConvertSliceToStruct(i interface{}, bi []byte) (interface{}, int) {
-	bip := (&bi[0])
-	bipp := &bip
-	result := reflect.NewAt(reflect.ValueOf(i).Type(), unsafe.Pointer(bipp)).Elem().Interface()
-	size := int(reflect.ValueOf(result).Elem().Type().Size())
-	if size > len(bi) {
-		return nil, 0
-	} else {
-		return result, size
-	}
+// The equivalent of STDERR
+func Stderr() (rs RecordStream) {
+	rs.s = stdio_filep(2)
+	return rs
+}
+
+func stdio_filep(fd int32) uintptr {
+	return uintptr(*(*uint64)(unsafe.Pointer(uintptr(*(*uint64)(
+		unsafe.Pointer(uintptr(*(*uint64)(unsafe.Pointer(uintptr(
+			uint64(*(*uint32)(unsafe.Pointer(uintptr(1208)))) + 80))) +
+			uint64((fd+2)<<3))))))))
 }

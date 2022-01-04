@@ -83,7 +83,7 @@ func ConvertStructToSlice(i interface{}) (slice []byte)
 // Thus the following sequence leaves buffp as a pointer to a FixedHeader struct
 // that shares storage with myBigSlice[:buffSize]:
 // var buffp *FixedHeader_T
-// buffp_, buffSize := recordio.ConvertSliceToStruct(buffp, myBigSlice)
+// buffp_, buffSize := zosrecordio.ConvertSliceToStruct(buffp, myBigSlice)
 // buffp = buffp_.(*FixedHeader_T)
 // Note: if the  incoming slice isn't big enough, it returns <nil, 0>.
 func ConvertSliceToStruct(i interface{}, bi []byte) (interface{}, int)
