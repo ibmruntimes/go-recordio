@@ -13,7 +13,6 @@ import (
 	"github.com/ibmruntimes/go-recordio/utils"
 )
 
-const __KEY_EQ = 3
 const FIXED_PRODID_SIZE = 4
 const FIXED_KEY_SIZE = 16
 const FIXED_VAL_SIZE = 16
@@ -89,7 +88,7 @@ func main() {
 		}
 		fmt.Println("--", num, string(buffp.key[:]), string(buffp.val[:]))
 	}
-	fl := stream.Flocate([]byte("KEY_AWAY"), __KEY_EQ)
+	fl := stream.Flocate([]byte("KEY_AWAY"), zosrecordio.Loc_KEY_EQ)
 	fmt.Println(fl)
 	if fl == 0 {
 		fmt.Println("good flocate")

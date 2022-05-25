@@ -14,6 +14,18 @@ import (
 
 const EOF = -1
 
+type LocOptions int // Flocate Options
+
+const (
+	Loc_RBA_EQ LocOptions = iota
+	Loc_KEY_FIRST
+	Loc_KEY_LAST
+	Loc_KEY_EQ
+	Loc_KEY_EQ_BWD
+	Loc_KEY_GE
+	Loc_RBA_EQ_BWD
+)
+
 // RecordStream holds a stream identifier
 type RecordStream struct {
 	s uintptr
@@ -49,7 +61,7 @@ func Freopen(fname string, mode string, rs RecordStream) (rso RecordStream) {
 
 // Flocate locates a record by Key, received as a byte slice
 // Returns 0 if successful, otherwise EOF
-func (rs RecordStream) Flocate(key []byte, options int) int {
+func (rs RecordStream) Flocate(key []byte, options LocOptions) int {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x246<<4, //flocate
 		[]uintptr{rs.s,
 			uintptr(unsafe.Pointer(&key[0])),
