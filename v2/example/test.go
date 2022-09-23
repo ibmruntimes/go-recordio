@@ -44,7 +44,7 @@ func main() {
 	log.SetFlags(log.Lshortfile)
 	buffbytes := utils.ConvertTypeToSlice(&buff)
 	if len(os.Args) < 2 {
-		fmt.Println("Provide an argument of the form \"//'HLQ.DBNAME.KEY.PATH'\"")
+		fmt.Println("Provide an argument of the form \"//'HLQ.DBNAME'\"")
 		return
 	}
 	Dname := os.Args[1]
