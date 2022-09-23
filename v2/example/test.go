@@ -40,9 +40,9 @@ var buff = FixedHeader_T{}
 func main() {
 	var num int
 	var numu int
+	var key0[FIXED_KEY_SIZE]byte
 	log.SetFlags(log.Lshortfile)
 	buffbytes := utils.ConvertTypeToSlice(&buff)
-	myBigSlice := make([]byte, 100, 100)
 	if len(os.Args) < 2 {
 		fmt.Println("Provide an argument of the form \"//'HLQ.DBNAME.KEY.PATH'\"")
 		return
@@ -56,6 +56,7 @@ func main() {
 	if stream.Nil() {
 		log.Fatal("zero stream")
 	}
+	copy(buff.key[:],key0[:])
 	copy(buff.key[:], "KEY")
 	copy(buff.val[:], "qrt")
 	stream.Fwrite(buffbytes)
@@ -69,11 +70,9 @@ func main() {
 	err := stream.Ferror()
 	fmt.Println("--", num, string(buff.key[:]), string(buff.val[:]), eofp, err)
 	myBigSlice = make([]byte, 100, 100)
-	//var buffp *FixedHeader_T
-	//buffp_, buffSize := utils.ConvertSliceToStruct(buffp, myBigSlice)
-	//buffp = buffp_.(*FixedHeader_T)
 	buffp, buffSize := utils.ConvertSliceToType[FixedHeader_T](myBigSlice)
 	fmt.Println("The size of the struct is", buffSize)
+	copy(buff.key[:],key0[:])
 	copy(buffp.key[:], "KEY_AWAY")
 	copy(buffp.val[:], "qrs")
 	stream.Fwrite(myBigSlice[:buffSize])
