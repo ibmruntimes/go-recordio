@@ -69,7 +69,7 @@ func main() {
 	eofp := stream.Feof()
 	err := stream.Ferror()
 	fmt.Println("--", num, string(buff.key[:]), string(buff.val[:]), eofp, err)
-	myBigSlice = make([]byte, 100, 100)
+	myBigSlice := make([]byte, 100, 100)
 	buffp, buffSize := utils.ConvertSliceToType[FixedHeader_T](myBigSlice)
 	fmt.Println("The size of the struct is", buffSize)
 	copy(buff.key[:],key0[:])
