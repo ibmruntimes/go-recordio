@@ -1,0 +1,20 @@
+#!/bin/env bash
+set -e
+set -x
+exec 2>&1 
+go build -o loadmod
+as a24.asm 
+ld -o a24 a24.o
+as a31.asm 
+ld -o a31 a31.o
+as a64.asm 
+ld -o a64 a64.o
+id=$(/bin/id -nu)
+( tsocmd "allocate da('${id}.gotest.pdse')  new dsorg(po) recfm(u) lrecl(0) blksize(32760) dsntype(library) space(5,1) cyl" )
+cp -X a24 "//'${id}.GOTEST.PDSE(A24)'" 
+cp -X a31 "//'${id}.GOTEST.PDSE(A31)'" 
+cp -X a64 "//'${id}.GOTEST.PDSE(A64)'" 
+STEPLIB=${id}.GOTEST.PDSE:$STEPLIB ./loadmod 
+tsocmd "delete gotest.pdse"
+rm a24 a24.o a31 a31.o a64 a64.o
+
