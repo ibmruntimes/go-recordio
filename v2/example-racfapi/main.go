@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"unsafe"
+
 	"github.com/ibmruntimes/go-recordio/v2/utils"
 )
 
@@ -58,7 +59,7 @@ func main() {
 		plist31.Func = 0x3
 		copy(plist31.RacfUserid[:], "IBMUSER ")
 		utils.AtoE(plist31.RacfUserid[:])
-		plist31.RacfUseridLen = 3
+		plist31.RacfUseridLen = 7 // length of userid
 		RC := mod.Call(uintptr(unsafe.Pointer(plist31)))
 		if RC == 0 {
 			fmt.Printf("SafRC %d RacfRc %d Reason %d\n", plist31.Rc, plist31.RacfRc, plist31.RacfRsnRc)
