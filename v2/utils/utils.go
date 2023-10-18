@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -12,6 +13,20 @@ import (
 
 var Trace bool
 
+func Clib(offset uintptr, parms ...uintptr) (ret uintptr) {
+	ret = runtime.CallLeFuncByPtr(runtime.XplinkLibvec+offset<<4, parms)
+	return
+}
+func Cfunc(funcptr uintptr, parms ...uintptr) (ret uintptr) {
+	ret = runtime.CallLeFuncByPtr(funcptr, parms)
+	return
+}
+func ThreadAsciiMode() {
+	Clib(0x791, 1)
+}
+func ThreadEbcdicMode() {
+	Clib(0x791, 0)
+}
 func Malloc31(size int) (ret unsafe.Pointer) {
 	ret = unsafe.Pointer(runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x7fd<<4,
 		[]uintptr{uintptr(size)}))
@@ -61,6 +76,9 @@ func Call31(p *ModuleInfo) uintptr
 
 //go:nosplit
 func Call64(p *ModuleInfo) uintptr
+
+//go:nosplit
+func Deref(ptr uintptr) (value uintptr, error uintptr)
 
 func Iefssreq(parm unsafe.Pointer, dsa unsafe.Pointer) (ret uintptr) {
 	branch_ptr := unsafe.Pointer(uintptr(*(*int32)(unsafe.Pointer(uintptr(*(*uint32)(unsafe.Pointer(uintptr(*(*uint32)(unsafe.Pointer(uintptr(0) + 16))) + 296))) + 20))))
@@ -300,4 +318,173 @@ func Dup2(oldfd uintptr, newfd uintptr) uintptr {
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x183<<4,
 		[]uintptr{oldfd, newfd})
 	return ret
+}
+
+type Dll struct {
+	Dllname  string
+	Handle   uintptr
+	Count    uint32
+	TablePtr uintptr
+	Symbols  map[string]uintptr
+	Valid    bool
+}
+
+func LeFuncName(funcptr uintptr) (name string) {
+	f, e := Deref(8 + funcptr)
+	if e != 0 {
+		return
+	}
+	h, e := Deref(f - 16)
+	if e != 0 {
+		return
+	}
+	if h != 0xc300c500c500f1 {
+		return
+	}
+	ppaoff, e := Deref(f - 8)
+	if e != 0 {
+		return
+	}
+	ppaoff >>= 32
+	ppa1 := f - 16 + ppaoff
+	flags, e := Deref(ppa1 + 8)
+	if e != 0 {
+		return
+	}
+	flags >>= 32
+	if 0 == (flags & 0x00000001) {
+		// no name
+		return
+	}
+	var optflds uintptr
+	if 0 != (flags & 0x00008000) {
+		// state variable locator
+		optflds++
+	}
+	if 0 != (flags & 0x00004000) {
+		// arg area len
+		optflds++
+	}
+	if 0 != (flags & 0x00003000) {
+		// fpr mask or ar mask
+		optflds++
+	}
+	if 0 != (flags & 0x00000800) {
+		// member word
+		optflds++
+	}
+	if 0 != (flags & 0x00000400) {
+		// ppa3 present
+		optflds++
+	}
+	optflds <<= 2
+	namesz1, e := Deref(ppa1 + 0x14 + optflds)
+	if e != 0 {
+		return
+	}
+	namesz1 >>= 48
+	if namesz1 > 128 {
+		return
+	}
+	var funcname [128]byte
+	for i := 0; i < int(namesz1); i += 8 {
+		v, e := Deref(ppa1 + 0x16 + optflds + uintptr(i))
+		if e != 0 {
+			return
+		}
+		funcname[i] = byte(v >> 56)
+		funcname[i+1] = byte(v >> 48)
+		funcname[i+2] = byte(v >> 40)
+		funcname[i+3] = byte(v >> 32)
+		funcname[i+4] = byte(v >> 24)
+		funcname[i+5] = byte(v >> 16)
+		funcname[i+6] = byte(v >> 8)
+		funcname[i+7] = byte(v)
+	}
+	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x6e3<<4, // __e2a_l
+		[]uintptr{uintptr(unsafe.Pointer(&funcname[0])), namesz1})
+	name = string(funcname[:namesz1])
+	return
+}
+
+func (d *Dll) Open(name string) error {
+	d.Dllname = name
+	strptr := uintptr(unsafe.Pointer(&(([]byte(name + "\x00"))[0])))
+	d.Handle = runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8d0<<4, []uintptr{strptr, uintptr(0x00010002)}) // dlopen_a
+	if d.Handle == 0 {
+		return fmt.Errorf("failed to open dll(1) %s, %s", name, d.Error())
+	}
+	p1, e := Deref(d.Handle + 8)
+	if e != 0 {
+		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8df<<4, []uintptr{d.Handle}) // dlclose
+		return fmt.Errorf("dll handle not valid(1) %s", name)
+	}
+	l, e := Deref(p1 + 152)
+	if e != 0 {
+		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8df<<4, []uintptr{d.Handle}) // dlclose
+		return fmt.Errorf("dll handle not valid(2) %s", name)
+	}
+	if l != 0xc4d3c3c2000000a0 {
+		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8df<<4, []uintptr{d.Handle}) // dlclose
+		return fmt.Errorf("missing dlcb marker %s", name)
+	}
+	l, e = Deref(p1 + 0x90)
+	if e != 0 {
+		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8df<<4, []uintptr{d.Handle}) // dlclose
+		return fmt.Errorf("dll handle not valid(3) %s", name)
+	}
+	d.Count = uint32(l >> 32)
+	d.TablePtr, e = Deref(p1 + 0x78)
+	if e != 0 {
+		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8df<<4, []uintptr{d.Handle}) // dlclose
+		return fmt.Errorf("dll handle not valid(4) %s", name)
+	}
+	d.Symbols = make(map[string]uintptr)
+	d.Valid = true
+	return nil
+}
+func (d *Dll) Close() error {
+	var res uintptr
+	if d.Valid {
+		res = runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8df<<4, []uintptr{d.Handle}) // dlclose
+		d.Valid = false
+	}
+	if res != 0 {
+		return fmt.Errorf("dll %s dlclose error: %s", d.Dllname, d.Error())
+	}
+	return nil
+}
+func (d *Dll) Error() string {
+	str := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8d2<<4, []uintptr{d.Handle}) // dlerror
+	ba := (*[1<<30 - 1]byte)(unsafe.Pointer(str))
+	size := bytes.IndexByte(ba[:], 0)
+	return string(ba[:size:size])
+}
+func (d *Dll) Sym(fn string) (fptr uintptr, err error) {
+	fptr, ok := d.Symbols[fn]
+	if !ok {
+		fptr = runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8d1<<4, []uintptr{d.Handle, uintptr(unsafe.Pointer(&(([]byte(fn + "\x00"))[0])))}) // dlsym
+		if fptr == 0 {
+			err = fmt.Errorf("Symbol %s not found: %s\n", fn, d.Error())
+		} else {
+			d.Symbols[fn] = fptr
+		}
+	}
+	return
+}
+func (d *Dll) ResolveAll() error {
+	if !d.Valid {
+		return fmt.Errorf("DLL info not valid %s", d.Dllname)
+	}
+	entry := d.TablePtr
+	var i uint32
+	for i = 0; i < d.Count; i++ {
+		fn := LeFuncName(entry)
+		if len(fn) != 0 {
+			d.Symbols[fn] = entry
+		}
+		entry += 16
+	}
+
+	return nil
 }
