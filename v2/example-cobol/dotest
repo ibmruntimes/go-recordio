@@ -1,0 +1,8 @@
+#!/bin/env bash
+set -e
+set -x
+exec 2>&1 
+cob2 -q64 -vV -comprc_ok=8 -q"list,LP(64)" -qexportall -c xd.cbl
+cob2 -Wl,dll,lp64 -o XDDLL xd.o 
+go build
+./example-cobol

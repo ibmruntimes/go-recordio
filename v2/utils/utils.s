@@ -117,3 +117,25 @@ TEXT ·Call64(SB), NOSPLIT|NOFRAME, $0
 	MOVD R9, R14
 	MOVD R8, g
 	RET
+
+TEXT ·Deref(SB), NOSPLIT, $0-24
+	MOVD ptr+0(FP), R10                                                    // test pointer in R10
+	MOVD $0x0, R6
+	BYTE $0xE3; BYTE $0x20; BYTE $0x04; BYTE $0xB8; BYTE $0x00; BYTE $0x17 // llgt  2,1208
+	BYTE $0xB9; BYTE $0x17; BYTE $0x00; BYTE $0x22                         // llgtr 2,2
+	BYTE $0xA5; BYTE $0x26; BYTE $0x7F; BYTE $0xFF                         // nilh  2,32767
+	BYTE $0xE3; BYTE $0x22; BYTE $0x00; BYTE $0x58; BYTE $0x00; BYTE $0x04 // lg    2,88(2)
+	BYTE $0xE3; BYTE $0x22; BYTE $0x00; BYTE $0x08; BYTE $0x00; BYTE $0x04 // lg    2,8(2)
+	BYTE $0x41; BYTE $0x22; BYTE $0x03; BYTE $0x68                         // la    2,872(2)
+	BYTE $0xB9; BYTE $0x82; BYTE $0x00; BYTE $0x33                         // xgr   3,3
+	BYTE $0xA7; BYTE $0x55; BYTE $0x00; BYTE $0x04                         // bras  5,lbl1
+	BYTE $0xA7; BYTE $0x39; BYTE $0x00; BYTE $0x01                         // lghi  3,1
+	BYTE $0xB9; BYTE $0x02; BYTE $0x00; BYTE $0x33                         // lbl1     ltgr  3,3
+	BYTE $0xA7; BYTE $0x74; BYTE $0x00; BYTE $0x08                         // brc   b'0111',lbl2
+	BYTE $0xE3; BYTE $0x52; BYTE $0x00; BYTE $0x00; BYTE $0x00; BYTE $0x24 // stg 5,0(2)
+	BYTE $0xE3; BYTE $0x6A; BYTE $0x00; BYTE $0x00; BYTE $0x00; BYTE $0x04 // lg    6,0(10)
+	BYTE $0xB9; BYTE $0x82; BYTE $0x00; BYTE $0x99                         // lbl2     xgr   9,9
+	BYTE $0xE3; BYTE $0x92; BYTE $0x00; BYTE $0x00; BYTE $0x00; BYTE $0x24 // stg   9,0(2)
+	MOVD R6, value+8(FP)                                                   // result in R6
+	MOVD R3, error+16(FP)                                                  // error in R3
+	RET
