@@ -5,30 +5,10 @@ import (
 	"log"
 	"os"
 	"runtime"
-	"syscall"
 	"unsafe"
 
 	"github.com/ibmruntimes/go-recordio/v2/utils"
 )
-
-type Dll struct {
-	dllname  string
-	handle   uintptr
-	len      uint16
-	realname string
-	valid    bool
-}
-
-func (d *Dll) Open(name string) error {
-	d.dllname = name
-	strptr := uintptr(unsafe.Pointer(&(([]byte(name + "\x00"))[0])))
-	d.handle = runtime.CallLeFuncByPtr(runtime.XplinkLibvec+syscall.SYS___DLOPEN_A<<4, []uintptr{strptr, uintptr(0x00010002)})
-	if d.handle == 0 {
-		return fmt.Errorf("failed to open dll %s", name)
-	}
-	d.valid = true
-	return nil
-}
 
 func foo() {
 	var dll utils.Dll
