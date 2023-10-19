@@ -1,4 +1,4 @@
-An example of call a COBOL DLL
+An example of loading dwarf dll.
 
 To build and run
 ```
