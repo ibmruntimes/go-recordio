@@ -21,6 +21,9 @@ func Cfunc(funcptr uintptr, parms ...uintptr) (ret uintptr) {
 	ret = runtime.CallLeFuncByPtr(funcptr, parms)
 	return
 }
+func ToCStringPointer(str string) uintptr {
+	return uintptr(unsafe.Pointer(&[]byte(str + "\x00")[0]))
+}
 func ThreadAsciiMode() {
 	Clib(0x791, 1)
 }
@@ -44,17 +47,21 @@ func Free(ptr unsafe.Pointer) {
 		[]uintptr{uintptr(ptr)})
 }
 
-func EtoA(record []byte) {
+
+func _etoA(record []byte) {
 	sz := len(record)
 	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x6e3<<4, // __e2a_l
 		[]uintptr{uintptr(unsafe.Pointer(&record[0])), uintptr(sz)})
 }
 
-func AtoE(record []byte) {
+func _atoE(record []byte) {
 	sz := len(record)
 	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x741<<4, // __a2e_l
 		[]uintptr{uintptr(unsafe.Pointer(&record[0])), uintptr(sz)})
 }
+
+var EtoA = _etoA
+var AtoE = _atoE
 
 //go:noescape
 func Bpxcall(plist []unsafe.Pointer, bpx_offset int64)
