@@ -11,5 +11,5 @@ The output should be a list of CA Certificates on the system.
 
 You might need to permit access
 ```
-RMIT profile-name CLASS(CSFSERV) ID(your-userid) ACCESS(READ)
+PERMIT profile-name CLASS(CSFSERV) ID(your-userid) ACCESS(READ)
 ```
