@@ -31,32 +31,32 @@ func ThreadEbcdicMode() {
 	Clib(0x791, 0)
 }
 func Malloc31(size int) (ret unsafe.Pointer) {
-	ret = unsafe.Pointer(runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x7fd<<4,
+	ret = unsafe.Pointer(runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS___MALLOC31<<4,
 		[]uintptr{uintptr(size)}))
-	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x0a3<<4, []uintptr{uintptr(ret), 0, uintptr(size)})
+	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS_MEMSET<<4, []uintptr{uintptr(ret), 0, uintptr(size)})
 	return
 }
 func Malloc24(size int) (ret unsafe.Pointer) {
-	ret = unsafe.Pointer(runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x7fc<<4,
+	ret = unsafe.Pointer(runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS___MALLOC24<<4,
 		[]uintptr{uintptr(size)}))
-	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x0a3<<4, []uintptr{uintptr(ret), 0, uintptr(size)})
+	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS_MEMSET<<4, []uintptr{uintptr(ret), 0, uintptr(size)})
 	return
 }
 func Free(ptr unsafe.Pointer) {
-	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x059<<4,
+	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS_FREE<<4,
 		[]uintptr{uintptr(ptr)})
 }
 
 
 func _etoA(record []byte) {
 	sz := len(record)
-	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x6e3<<4, // __e2a_l
+	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS___E2A_L<<4, // __e2a_l
 		[]uintptr{uintptr(unsafe.Pointer(&record[0])), uintptr(sz)})
 }
 
 func _atoE(record []byte) {
 	sz := len(record)
-	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x741<<4, // __a2e_l
+	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS___A2E_L<<4, // __a2e_l
 		[]uintptr{uintptr(unsafe.Pointer(&record[0])), uintptr(sz)})
 }
 
@@ -316,13 +316,13 @@ func ConvertSliceToTypes3[T1, T2, T3 any](bi []byte) (*T1, *T2, *T3) {
 
 // The equivalent of the perror() function which prints an error string on the "current" errno.
 func Perror() {
-	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x712<<4, //perror()
+	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS___PERROR_A<<4, //perror()
 		[]uintptr{})
 }
 
 // The equivalent of the dup2() function which duplicates a file descriptor
 func Dup2(oldfd uintptr, newfd uintptr) uintptr {
-	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x183<<4,
+	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS_DUP2<<4,
 		[]uintptr{oldfd, newfd})
 	return ret
 }
@@ -408,7 +408,7 @@ func LeFuncName(funcptr uintptr) (name string) {
 		funcname[i+6] = byte(v >> 8)
 		funcname[i+7] = byte(v)
 	}
-	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x6e3<<4, // __e2a_l
+	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS___E2A_L<<4, // __e2a_l
 		[]uintptr{uintptr(unsafe.Pointer(&funcname[0])), namesz1})
 	name = string(funcname[:namesz1])
 	return
@@ -417,33 +417,33 @@ func LeFuncName(funcptr uintptr) (name string) {
 func (d *Dll) Open(name string) error {
 	d.Dllname = name
 	strptr := uintptr(unsafe.Pointer(&(([]byte(name + "\x00"))[0])))
-	d.Handle = runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8d0<<4, []uintptr{strptr, uintptr(0x00010002)}) // dlopen_a
+	d.Handle = runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS___DLOPEN_A<<4, []uintptr{strptr, uintptr(0x00010002)}) // dlopen_a
 	if d.Handle == 0 {
 		return fmt.Errorf("failed to open dll(1) %s, %s", name, d.Error())
 	}
 	p1, e := Deref(d.Handle + 8)
 	if e != 0 {
-		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8df<<4, []uintptr{d.Handle}) // dlclose
+		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS_DLCLOSE<<4, []uintptr{d.Handle}) // dlclose
 		return fmt.Errorf("dll handle not valid(1) %s", name)
 	}
 	l, e := Deref(p1 + 152)
 	if e != 0 {
-		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8df<<4, []uintptr{d.Handle}) // dlclose
+		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS_DLCLOSE<<4, []uintptr{d.Handle}) // dlclose
 		return fmt.Errorf("dll handle not valid(2) %s", name)
 	}
 	if l != 0xc4d3c3c2000000a0 {
-		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8df<<4, []uintptr{d.Handle}) // dlclose
+		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS_DLCLOSE<<4, []uintptr{d.Handle}) // dlclose
 		return fmt.Errorf("missing dlcb marker %s", name)
 	}
 	l, e = Deref(p1 + 0x90)
 	if e != 0 {
-		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8df<<4, []uintptr{d.Handle}) // dlclose
+		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS_DLCLOSE<<4, []uintptr{d.Handle}) // dlclose
 		return fmt.Errorf("dll handle not valid(3) %s", name)
 	}
 	d.Count = uint32(l >> 32)
 	d.TablePtr, e = Deref(p1 + 0x78)
 	if e != 0 {
-		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8df<<4, []uintptr{d.Handle}) // dlclose
+		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS_DLCLOSE<<4, []uintptr{d.Handle}) // dlclose
 		return fmt.Errorf("dll handle not valid(4) %s", name)
 	}
 	d.Symbols = make(map[string]uintptr)
@@ -453,7 +453,7 @@ func (d *Dll) Open(name string) error {
 func (d *Dll) Close() error {
 	var res uintptr
 	if d.Valid {
-		res = runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8df<<4, []uintptr{d.Handle}) // dlclose
+		res = runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS_DLCLOSE<<4, []uintptr{d.Handle}) // dlclose
 		d.Valid = false
 	}
 	if res != 0 {
@@ -462,7 +462,7 @@ func (d *Dll) Close() error {
 	return nil
 }
 func (d *Dll) Error() string {
-	str := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8d2<<4, []uintptr{d.Handle}) // dlerror
+	str := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS___DLERROR_A<<4, []uintptr{d.Handle}) // dlerror
 	ba := (*[1<<30 - 1]byte)(unsafe.Pointer(str))
 	size := bytes.IndexByte(ba[:], 0)
 	return string(ba[:size:size])
@@ -470,7 +470,7 @@ func (d *Dll) Error() string {
 func (d *Dll) Sym(fn string) (fptr uintptr, err error) {
 	fptr, ok := d.Symbols[fn]
 	if !ok {
-		fptr = runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x8d1<<4, []uintptr{d.Handle, uintptr(unsafe.Pointer(&(([]byte(fn + "\x00"))[0])))}) // dlsym
+		fptr = runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS___DLSYM_A<<4, []uintptr{d.Handle, uintptr(unsafe.Pointer(&(([]byte(fn + "\x00"))[0])))}) // dlsym
 		if fptr == 0 {
 			err = fmt.Errorf("Symbol %s not found: %s\n", fn, d.Error())
 		} else {

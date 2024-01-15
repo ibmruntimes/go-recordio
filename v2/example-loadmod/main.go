@@ -47,7 +47,7 @@ func main() {
 		os.Exit(1)
 	}
 	wrstr := fmt.Sprintf("%d", wr.Fd())
-	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+0x71b<<4, []uintptr{uintptr(unsafe.Pointer(&([]byte("_BPXK_JOBLOG"))[0])), uintptr(unsafe.Pointer(&([]byte(wrstr))[0])), 1})
+	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+utils.SYS___SETENV_A<<4, []uintptr{uintptr(unsafe.Pointer(&([]byte("_BPXK_JOBLOG"))[0])), uintptr(unsafe.Pointer(&([]byte(wrstr))[0])), 1})
 	go DoPrint(rd, ic)
 
 	siz := (int((reflect.TypeOf((*PLIST)(nil)).Elem()).Size()))
