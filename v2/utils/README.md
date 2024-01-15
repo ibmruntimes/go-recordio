@@ -1,3 +1,8 @@
+# LibVec offset generation
+
+* go run mklibvec.go
+  creates libvec_zos.go for your zos system
+
 # Utiliy functions
 
 # Usage

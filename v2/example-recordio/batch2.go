@@ -7,7 +7,7 @@ import (
 	"syscall"
 
 	"github.com/ibmruntimes/go-recordio/v2"
-	"github.com/ibmruntimes/go-recordio//v2/utils"
+	"github.com/ibmruntimes/go-recordio/v2/utils"
 )
 
 func readFdWriteIO(wg *sync.WaitGroup, fd uintptr, stdio int32) {
