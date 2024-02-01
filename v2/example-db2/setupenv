@@ -10,8 +10,6 @@ export IBM_DB_DBNAME=DB2C
 
 unlink odbc.ini
 cat2 -e > odbc.ini << END
-; This is a comment line...
-; Example COMMON stanza
 [COMMON]
 MVSDEFAULTSSID=DB2C
 CONNECTTYPE=1
@@ -21,13 +19,8 @@ MULTICONTEXT=2
 CURRENTAPPENSCH=ASCII
 FLOAT=IEEE
 THREADSAFE=1
-; Example SUBSYSTEM stanza for VC1A subsystem
 [DB2C]
 PLANNAME=DSNACLI
 MVSATTACHTYPE=RRSAF
-; Example DATA SOURCE stanza for STLEC1 data source
-;[STLEC1]
-;AUTOCOMMIT=1
-;CURSORHOLD=1
 END
 tagfile odbc.ini
