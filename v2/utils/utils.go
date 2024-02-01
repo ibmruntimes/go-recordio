@@ -21,6 +21,14 @@ func Cfunc(funcptr uintptr, parms ...uintptr) (ret uintptr) {
 	ret = runtime.CallLeFuncByPtr(funcptr, parms)
 	return
 }
+func CfuncEbcdic(funcptr uintptr, parms ...uintptr) (ret uintptr) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	ThreadEbcdicMode()
+	defer ThreadAsciiMode()
+	ret = runtime.CallLeFuncByPtr(funcptr, parms)
+	return
+}
 func ToCStringPointer(str string) uintptr {
 	return uintptr(unsafe.Pointer(&[]byte(str + "\x00")[0]))
 }
@@ -29,6 +37,12 @@ func ThreadAsciiMode() {
 }
 func ThreadEbcdicMode() {
 	Clib(0x791, 0)
+}
+func Malloc64(size int) (ret unsafe.Pointer) {
+	ret = unsafe.Pointer(runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS_MALLOC<<4,
+		[]uintptr{uintptr(size)}))
+	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS_MEMSET<<4, []uintptr{uintptr(ret), 0, uintptr(size)})
+	return
 }
 func Malloc31(size int) (ret unsafe.Pointer) {
 	ret = unsafe.Pointer(runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS___MALLOC31<<4,
@@ -46,7 +60,6 @@ func Free(ptr unsafe.Pointer) {
 	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+SYS_FREE<<4,
 		[]uintptr{uintptr(ptr)})
 }
-
 
 func _etoA(record []byte) {
 	sz := len(record)

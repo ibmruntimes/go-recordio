@@ -1,0 +1,33 @@
+export IBM_DB_HOME=SHARE.DSN.V12R1M0
+export STEPLIB=${IBM_DB_HOME}.SDSNEXIT:${IBM_DB_HOME}.SDSNLOAD:${IBM_DB_HOME}.SDSNLOD2 
+export IBM_DB_SERVER_TYPE="ZOS"
+export DSNAOINI=$(pwd)/odbc.ini
+export IBM_DB_UID=$(/bin/id -nu)
+export IBM_DB_PWD=........
+export IBM_DB_HOSTNAME=$(hostname)
+export IBM_DB_PORT=7500
+export IBM_DB_DBNAME=DB2C
+
+unlink odbc.ini
+cat2 -e > odbc.ini << END
+; This is a comment line...
+; Example COMMON stanza
+[COMMON]
+MVSDEFAULTSSID=DB2C
+CONNECTTYPE=1
+APPLTRACE=1
+APPLTRACEFILENAME="$(pwd)/trace.log"
+MULTICONTEXT=2
+CURRENTAPPENSCH=ASCII
+FLOAT=IEEE
+THREADSAFE=1
+; Example SUBSYSTEM stanza for VC1A subsystem
+[DB2C]
+PLANNAME=DSNACLI
+MVSATTACHTYPE=RRSAF
+; Example DATA SOURCE stanza for STLEC1 data source
+;[STLEC1]
+;AUTOCOMMIT=1
+;CURSORHOLD=1
+END
+tagfile odbc.ini
