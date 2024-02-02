@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"strings"
 	"unsafe"
 
 	"github.com/ibmruntimes/go-recordio/v2/utils"
@@ -23,7 +24,12 @@ func getFunc(dll *utils.Dll, str string) uintptr {
 	}
 	return fp
 }
-
+func max(a int, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
 func foo() {
 	var dll utils.Dll
 	var e error
@@ -98,14 +104,15 @@ func foo() {
 	SQLBindCol := getFunc(&dll, "SQLBindCol")
 	SQLFetch := getFunc(&dll, "SQLFetch")
 	type column_t struct {
-		colname    [MAX_COL_NAME_LEN]byte
-		pcbcolname SQLSMALLINT
-		coltype    SQLSMALLINT
-		coldef     SQLULEN
-		scale      SQLSMALLINT
-		nullable   SQLSMALLINT
-		length     SQLLEN
-		data       [MAX_DATA_LEN]byte
+		colname      [MAX_COL_NAME_LEN]byte
+		pcbcolname   SQLSMALLINT
+		coltype      SQLSMALLINT
+		coldef       SQLULEN
+		scale        SQLSMALLINT
+		nullable     SQLSMALLINT
+		length       SQLLEN
+		data         [MAX_DATA_LEN]byte
+		format_width int
 	}
 	c := make([]column_t, cols, cols)
 
@@ -130,10 +137,16 @@ func foo() {
 		if rc1 != SQL_SUCCESS {
 			return
 		}
+		c[i].format_width = max(int(c[i].coldef), int(c[i].pcbcolname)) + 1
 	}
 
+	fmt.Printf("\nQuery %s\n", sqlstmt)
 	for i := 0; i < int(cols); i++ {
-		fmt.Printf("%s\t", string(c[i].colname[:c[i].pcbcolname]))
+		fmt.Printf("%s%s", string(c[i].colname[:c[i].pcbcolname]), strings.Repeat(" ", c[i].format_width-int(c[i].pcbcolname)))
+	}
+	fmt.Printf("\n")
+	for i := 0; i < int(cols); i++ {
+		fmt.Printf("%s ", strings.Repeat("=", c[i].format_width-1))
 	}
 	fmt.Printf("\n")
 
@@ -141,7 +154,7 @@ func foo() {
 	showSqlError(&dll, rc, "SQLFetch", SQLHANDLE(hstmt), SQL_HANDLE_STMT)
 	for rc != SQL_NO_DATA {
 		for i := 0; i < int(cols); i++ {
-			fmt.Printf("%s\t", c[i].data)
+			fmt.Printf("%s%s", string(c[i].data[:c[i].length]), strings.Repeat(" ", c[i].format_width-int(c[i].length)))
 		}
 		fmt.Printf("\n")
 		rc = SQLRETURN(utils.CfuncEbcdic(SQLFetch, uintptr(hstmt)))
