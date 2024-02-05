@@ -103,15 +103,15 @@ TEXT ·Call31(SB), NOSPLIT|NOFRAME, $0
 	RET
 
 TEXT ·Call64(SB), NOSPLIT|NOFRAME, $0
-	MOVD g, R8                                                             // preserve R13,R14,R15
+	MOVD g, R8             // preserve R13,R14,R15
 	MOVD R14, R9
 	MOVD R15, R10
-	MOVD modinfo+0(FP), R7                                                 // arg1-> R0
+	MOVD modinfo+0(FP), R7 // arg1-> R0
 	MOVD 16(R7), R1
 	MOVD 24(R7), g
 	MOVD 8(R7), R15
-	BYTE $0x0D; BYTE $0xEF                                                 // BASR 14,15
-	MOVD R15, 32(R7)                                                       // set p.R15
+	BYTE $0x0D; BYTE $0xEF // BASR 14,15
+	MOVD R15, 32(R7)       // set p.R15
 	MOVD R15, 16(R10)
 	MOVD R10, R15
 	MOVD R9, R14
@@ -138,4 +138,17 @@ TEXT ·Deref(SB), NOSPLIT, $0-24
 	BYTE $0xE3; BYTE $0x92; BYTE $0x00; BYTE $0x00; BYTE $0x00; BYTE $0x24 // stg   9,0(2)
 	MOVD R6, value+8(FP)                                                   // result in R6
 	MOVD R3, error+16(FP)                                                  // error in R3
+	RET
+
+TEXT ·Pc31(SB), NOSPLIT|NOFRAME, $0
+	MOVD pcno+0(FP), R2                            // pc number ->R2
+	MOVD parm+8(FP), R1                            // parm-> R1
+	MOVD R15, R7                                   // R15-> R7 save R15
+	BYTE $0x01; BYTE $0x0d                         // SAM31
+	BYTE $0xB2; BYTE $0x18; BYTE $0x20; BYTE $0x00 // PC 0(2)
+	BYTE $0x01; BYTE $0x0e                         // SAM64
+	MOVD R15, R8                                   // R15->R8 return code
+	MOVD R7, R15                                   // restore R15 (so that FP is valid)
+	MOVD R8, rc+16(FP)                             // return code
+	MOVD R0, rn+24(FP)                             // reason code if return code != 0
 	RET
