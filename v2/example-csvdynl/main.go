@@ -86,6 +86,9 @@ func main() {
 	p.Request = LIST
 	p.AnsAddr = uint32(uintptr(answer))
 	p.AnsLen = anslen
+	copy(p.LnkLstName[:], []byte("CURRENT         "))
+	utils.AtoE(p.LnkLstName[:])
+
 	rc, rn := utils.Pc31(pc, parm)
 	q := (*Dlaahdr)(answer)
 	if rc == 4 && rn == 0x403 {
