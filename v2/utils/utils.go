@@ -83,6 +83,9 @@ func Bpxcall(plist []unsafe.Pointer, bpx_offset int64)
 func IefssreqX(parm unsafe.Pointer, branch_ptr unsafe.Pointer, save_area unsafe.Pointer) uintptr
 
 //go:nosplit
+func Pc31(pcno uintptr, parm unsafe.Pointer) (rc uintptr, rn uintptr)
+
+//go:nosplit
 func Svc8(r0 unsafe.Pointer, r1 uintptr) (rr0 unsafe.Pointer, rr1 uintptr, rr15 uintptr)
 
 //go:nosplit
