@@ -16,6 +16,8 @@ const (
 	MAX_DATA_LEN     = 1024
 )
 
+var useinifile bool
+
 func getFunc(dll *utils.Dll, str string) uintptr {
 	fp, e := dll.Sym(str)
 	if e != nil {
@@ -33,11 +35,11 @@ func max(a int, b int) int {
 func foo() {
 	var dll utils.Dll
 	var e error
+	sqlstmt := []byte("SELECT * FROM DSN81210.EMP")
 	if len(os.Args) > 1 {
-		e = dll.Open(os.Args[1])
-	} else {
-		e = dll.Open("DSNAO64C")
+		sqlstmt = []byte(os.Args[1])
 	}
+	e = dll.Open("DSNAO64C")
 	if e != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load DLL %s\n", "DSNAO64C")
 		os.Exit(1)
@@ -70,9 +72,21 @@ func foo() {
 		return
 	}
 
-	rc = SQLRETURN(utils.CfuncEbcdic(getFunc(&dll, "SQLConnect"), uintptr(hdbc), 0, 0, 0, 0, 0, 0))
-	showSqlError(&dll, rc, "SQLConnect", SQLHANDLE(hdbc), SQL_HANDLE_DBC)
-	fmt.Printf("SQLConnect rc %d\n", rc)
+	if useinifile {
+		rc = SQLRETURN(utils.CfuncEbcdic(getFunc(&dll, "SQLConnect"), uintptr(hdbc), 0, 0, 0, 0, 0, 0))
+		showSqlError(&dll, rc, "SQLConnect", SQLHANDLE(hdbc), SQL_HANDLE_DBC)
+		fmt.Printf("SQLConnect rc %d\n", rc)
+	} else {
+		connectstring := []byte("dsn=DB2C;PWD=;bitdata=2;optimizefornrows=30;CURRENTAPPENSCH=ASCII;FLOAT=IEEE;THREADSAFE=1;PLANNAME=DSNACLI;MVSATTACHTYPE=RRSAF")
+		var outstring [SQL_MAX_OPTION_STRING_LENGTH]byte
+		outlen := SQLUSMALLINT(len(outstring))
+		rc = SQLRETURN(utils.CfuncEbcdic(getFunc(&dll, "SQLDriverConnect"), uintptr(hdbc), 0, uintptr(unsafe.Pointer(&connectstring[0])), uintptr(len(connectstring)), uintptr(unsafe.Pointer(&outstring[0])), uintptr(unsafe.Pointer(&outlen)), SQL_DRIVER_NOPROMPT))
+		showSqlError(&dll, rc, "SQLConnect", SQLHANDLE(hdbc), SQL_HANDLE_DBC)
+		fmt.Printf("SQLConnect rc %d\n", rc)
+	}
+	if rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO && rc != SQL_NO_DATA {
+		return
+	}
 
 	var hstmt SQLHSTMT
 	rc = SQLRETURN(utils.CfuncEbcdic(SQLAllocHandle, SQL_HANDLE_STMT, uintptr(hdbc), uintptr(unsafe.Pointer(&hstmt))))
@@ -83,7 +97,6 @@ func foo() {
 	} else {
 		return
 	}
-	var sqlstmt = []byte("SELECT * FROM DSN81210.EMP")
 	sqlstmtsz := uintptr(len(sqlstmt))
 	rc = SQLRETURN(utils.CfuncEbcdic(getFunc(&dll, "SQLExecDirect"), uintptr(hstmt), uintptr(unsafe.Pointer(&sqlstmt[0])), sqlstmtsz))
 	showSqlError(&dll, rc, "SQLExecDirect", SQLHANDLE(hstmt), SQL_HANDLE_STMT)

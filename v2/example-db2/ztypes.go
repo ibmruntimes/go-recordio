@@ -144,6 +144,8 @@ const (
 	SQL_NULL_HSTMT                  = 0
 	SQL_DECIMAL64_LEN               = 8
 	SQL_DECIMAL128_LEN              = 16
+	SQL_MAX_OPTION_STRING_LENGTH    = 256
+	SQL_DRIVER_NOPROMPT             = 0
 )
 
 type SQLCHAR byte
