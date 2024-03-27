@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"unicode/utf16"
 	"unsafe"
 
 	"github.com/ibmruntimes/go-recordio/v2/utils"
@@ -26,12 +27,14 @@ func getFunc(dll *utils.Dll, str string) uintptr {
 	}
 	return fp
 }
+
 func max(a int, b int) int {
 	if a > b {
 		return a
 	}
 	return b
 }
+
 func foo() {
 	var dll utils.Dll
 	var e error
@@ -75,14 +78,25 @@ func foo() {
 	if useinifile {
 		rc = SQLRETURN(utils.CfuncEbcdic(getFunc(&dll, "SQLConnect"), uintptr(hdbc), 0, 0, 0, 0, 0, 0))
 		showSqlError(&dll, rc, "SQLConnect", SQLHANDLE(hdbc), SQL_HANDLE_DBC)
-		fmt.Printf("SQLConnect rc %d\n", rc)
+		fmt.Fprintf(os.Stderr, "SQLConnect rc %d\n", rc)
 	} else {
-		connectstring := []byte("dsn=DB2C;PWD=;bitdata=2;optimizefornrows=30;CURRENTAPPENSCH=ASCII;FLOAT=IEEE;THREADSAFE=1;PLANNAME=DSNACLI;MVSATTACHTYPE=RRSAF")
-		var outstring [SQL_MAX_OPTION_STRING_LENGTH]byte
-		outlen := SQLUSMALLINT(len(outstring))
-		rc = SQLRETURN(utils.CfuncEbcdic(getFunc(&dll, "SQLDriverConnect"), uintptr(hdbc), 0, uintptr(unsafe.Pointer(&connectstring[0])), uintptr(len(connectstring)), uintptr(unsafe.Pointer(&outstring[0])), uintptr(unsafe.Pointer(&outlen)), SQL_DRIVER_NOPROMPT))
-		showSqlError(&dll, rc, "SQLConnect", SQLHANDLE(hdbc), SQL_HANDLE_DBC)
-		fmt.Printf("SQLConnect rc %d\n", rc)
+		cstr := "dsn=DB2C;PWD=;bitdata=2;optimizefornrows=30;CURRENTAPPENSCH=ASCII;FLOAT=IEEE;THREADSAFE=1;PLANNAME=DSNACLI;MVSATTACHTYPE=RRSAF"
+		if false {
+			connectstring := []byte(cstr)
+			var outstring [SQL_MAX_OPTION_STRING_LENGTH]byte
+			outlen := SQLUSMALLINT(len(outstring))
+			rc = SQLRETURN(utils.CfuncEbcdic(getFunc(&dll, "SQLDriverConnect"), uintptr(hdbc), 0, uintptr(unsafe.Pointer(&connectstring[0])), uintptr(len(connectstring)), uintptr(unsafe.Pointer(&outstring[0])), uintptr(unsafe.Pointer(&outlen)), SQL_DRIVER_NOPROMPT))
+			showSqlError(&dll, rc, "SQLDriverConnect", SQLHANDLE(hdbc), SQL_HANDLE_DBC)
+			fmt.Fprintf(os.Stderr, "SQLDriverConnect rc %d\n", rc)
+		} else {
+			println("using utf 16 version")
+			connectstring := utf16.Encode([]rune(cstr))
+			var outstring [SQL_MAX_OPTION_STRING_LENGTH]byte
+			outlen := SQLUSMALLINT(len(outstring))
+			rc = SQLRETURN(utils.CfuncEbcdic(getFunc(&dll, "SQLDriverConnectW"), uintptr(hdbc), 0, uintptr(unsafe.Pointer(&connectstring[0])), uintptr(2*len(connectstring)), uintptr(unsafe.Pointer(&outstring[0])), uintptr(unsafe.Pointer(&outlen)), SQL_DRIVER_NOPROMPT)) // 2*len([]uin16) is size in bytes
+			showSqlError(&dll, rc, "SQLDriverConnectW", SQLHANDLE(hdbc), SQL_HANDLE_DBC)
+			fmt.Fprintf(os.Stderr, "SQLDriverConnectW rc %d\n", rc)
+		}
 	}
 	if rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO && rc != SQL_NO_DATA {
 		return
@@ -173,11 +187,9 @@ func foo() {
 		rc = SQLRETURN(utils.CfuncEbcdic(SQLFetch, uintptr(hstmt)))
 		showSqlError(&dll, rc, "SQLFetch", SQLHANDLE(hstmt), SQL_HANDLE_STMT)
 	}
-
 }
 
 func showSqlError(dll *utils.Dll, er SQLRETURN, message string, h SQLHANDLE, typ SQLSMALLINT) {
-
 	if er != SQL_SUCCESS && er != SQL_SUCCESS_WITH_INFO && er != SQL_NO_DATA {
 		var sqlstate [6]byte
 		var msg [SQL_MAX_MESSAGE_LENGTH]byte
