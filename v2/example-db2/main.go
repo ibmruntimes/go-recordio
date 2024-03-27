@@ -169,11 +169,11 @@ func foo() {
 
 	fmt.Printf("\nQuery %s\n", sqlstmt)
 	for i := 0; i < int(cols); i++ {
-		fmt.Printf("%s%s", string(c[i].colname[:c[i].pcbcolname]), strings.Repeat(" ", c[i].format_width-int(c[i].pcbcolname)))
+		fmt.Printf("%s%s", string(c[i].colname[:c[i].pcbcolname]), strings.Repeat(" ", max(1, c[i].format_width-int(c[i].pcbcolname))))
 	}
 	fmt.Printf("\n")
 	for i := 0; i < int(cols); i++ {
-		fmt.Printf("%s ", strings.Repeat("=", c[i].format_width-1))
+		fmt.Printf("%s ", strings.Repeat("=", max(1, c[i].format_width-1)))
 	}
 	fmt.Printf("\n")
 
@@ -181,7 +181,7 @@ func foo() {
 	showSqlError(&dll, rc, "SQLFetch", SQLHANDLE(hstmt), SQL_HANDLE_STMT)
 	for rc != SQL_NO_DATA {
 		for i := 0; i < int(cols); i++ {
-			fmt.Printf("%s%s", string(c[i].data[:c[i].length]), strings.Repeat(" ", c[i].format_width-int(c[i].length)))
+			fmt.Printf("%s%s", string(c[i].data[:c[i].length]), strings.Repeat(" ", max(1, c[i].format_width-int(c[i].length))))
 		}
 		fmt.Printf("\n")
 		rc = SQLRETURN(utils.CfuncEbcdic(SQLFetch, uintptr(hstmt)))
