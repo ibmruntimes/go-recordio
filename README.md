@@ -1,6 +1,11 @@
 # Scope
 Record I/O in Go: a Go module for record I/O in VSAM databases directly from Go (no need for cgo)
 
+# Updates 2024-04-16
+New utility is available to create Go-style structures from HLASM ADATA file.
+Install by:
+`go install github.com/IBM/godsect@latest`
+
 # Updates
 New updates to this package is in the v2 directory, the current directory is left unchanged for compatibility.
 
