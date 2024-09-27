@@ -12,4 +12,4 @@ else
 	../cobol-objs/extract.sh
 fi
 go build
-./example-cobol
+./example-cobol-cgo
