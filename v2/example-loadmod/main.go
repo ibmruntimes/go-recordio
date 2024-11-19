@@ -80,7 +80,7 @@ func main() {
 	utils.Free(unsafe.Pointer(plist))
 
 	siz = (int((reflect.TypeOf((*PLIST)(nil)).Elem()).Size()))
-	plist31 := (*PLIST)(unsafe.Pointer(utils.Malloc24(siz)))
+	plist31 := (*PLIST)(unsafe.Pointer(utils.Malloc31(siz)))
 	copy(plist31.parm1[:], "AMODE 31 parameter 1")
 	copy(plist31.parm2[:], "AMODE 31 parameter 2")
 	copy(plist31.parm3[:], "AMODE 31 parameter 3")
