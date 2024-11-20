@@ -106,7 +106,7 @@ next_1   alfi     2,x'00000004'
          la       15,0
          l        0,write_sz
          freemain RU,LV=(0),A=(1),SP=(15)
-         lhi      15,0
+         lhi      15,55 #use return code 55 
          l        14,12(,13)
          lm       0,12,20(13)
          bcr      15,14
