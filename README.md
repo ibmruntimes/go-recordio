@@ -1,3 +1,6 @@
+# Updates 2024-12-12
+If you are new to this package, use the v2 directory instead. This directory is only kept for compatibility.
+
 # Scope
 Record I/O in Go: a Go module for record I/O in VSAM databases directly from Go (no need for cgo)
 
