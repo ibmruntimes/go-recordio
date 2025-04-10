@@ -21,12 +21,12 @@ type PLIST struct {
 
 // SQLVar represents a variable in the SQLDA structure
 type SQLVar struct {
-	SQLTYPE int16
-	SQLLEN  int16
-	SQLDATA int32
-	SQLIND  int32
-	SQLNAME_LENGTH  int16
-	Data    [30]byte
+	SQLTYPE        int16
+	SQLLEN         int16
+	SQLDATA        int32
+	SQLIND         int32
+	SQLNAME_LENGTH int16
+	Data           [30]byte
 }
 
 // SQLDA represents the SQLDA structure used for Metadata
