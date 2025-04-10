@@ -149,8 +149,6 @@ func fillDVCB(plist31 *PLIST) {
 	plist31.list[4] |= uint32(0x80000000)
 }
 
-var buff = record_T{}
-
 const (
 	SQL_INTEGER    = 111 // Unverified value
 	SQL_SMALLINT   = 500
