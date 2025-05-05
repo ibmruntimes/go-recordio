@@ -284,7 +284,6 @@ func main() {
 	//// OPEN ////
 	plist31.DVCB_Connect.DVCB_OPTIONS.DVCB_OPT_SQLDA = 'Y'
 	utils.AtoE((*[1]byte)(unsafe.Pointer(&plist31.DVCB_Connect.DVCB_OPTIONS.DVCB_OPT_SQLDA))[:])
-	plist31.sqldaArea.SQLDABC = int32(5*44 + 16) // Allocate space for 5 SQLVAR entries
 
 	requestDVM(plist31, "OPEN")
 	call(mod2, plist31)
