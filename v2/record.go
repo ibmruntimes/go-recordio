@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build zos
 // +build zos
 
 package zosrecordio
@@ -10,6 +11,7 @@ import (
 	"runtime"
 	"syscall"
 	"unsafe"
+
 	"github.com/ibmruntimes/go-recordio/v2/utils"
 )
 
@@ -27,6 +29,17 @@ const (
 	Loc_RBA_EQ_BWD
 )
 
+type sigset uint64
+
+// sigblock_SIGURG is a sigset with only SIGURG specified.
+var sigblock_SIGURG sigset = sigset(1<<63) >> (syscall.SIGURG - 1)
+
+const (
+	SIG_BLOCK   = 0
+	SIG_UNBLOCK = 1
+	SIG_SETMASK = 2
+)
+
 // RecordStream holds a stream identifier
 type RecordStream struct {
 	s uintptr
@@ -41,7 +54,7 @@ func (rs RecordStream) Nil() bool {
 func Fopen(fname string, mode string) (rs RecordStream) {
 	fnameBytes := []byte(fname + "\x00")
 	modeBytes := []byte(mode + "\x00")
-	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+utils.SYS___FOPEN_A <<4, //fopen
+	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+utils.SYS___FOPEN_A<<4, //fopen
 		[]uintptr{uintptr(unsafe.Pointer(&fnameBytes[0])),
 			uintptr(unsafe.Pointer(&modeBytes[0]))})
 	rs.s = ret
@@ -74,6 +87,8 @@ func (rs RecordStream) Flocate(key []byte, options LocOptions) int {
 // If the buffer is not big enough, the record will be truncated.
 // The actual number of bytes read is returned
 func (rs RecordStream) Fread(buffer []byte) int {
+	cleanup := disableAsyncPreempt()
+	defer cleanup()
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+utils.SYS___FREAD_A<<4, //fread
 		[]uintptr{uintptr(unsafe.Pointer(&buffer[0])),
 			uintptr(1),
@@ -118,7 +133,7 @@ func (rs RecordStream) Fupdate(buffer []byte) int {
 	return int(ret)
 }
 
-//Fwrite writes one record contained in buffer to the rs stream.
+// Fwrite writes one record contained in buffer to the rs stream.
 // It returns the number of bytes written.
 // Note, teh size of the record is the size of the slice.
 func (rs RecordStream) Fwrite(buffer []byte) int {
@@ -160,4 +175,20 @@ func stdio_filep(fd int32) uintptr {
 		unsafe.Pointer(uintptr(*(*uint64)(unsafe.Pointer(uintptr(
 			uint64(*(*uint32)(unsafe.Pointer(uintptr(1208)))) + 80))) +
 			uint64((fd+2)<<3))))))))
+}
+
+// disableAsyncPreempt locks OS thread and blocks SIGURG signal on the current thread to prevent from receiving asynchronous preemption signal.
+// Returns a function which should be called after the critical section is finished (usually via [defer]).
+func disableAsyncPreempt() func() {
+	runtime.LockOSThread()
+	var origset sigset
+	runtime.EnterSyscall()
+	runtime.CallLeFuncByPtr(runtime.XplinkLibvec+syscall.SYS_PTHREAD_SIGMASK<<4, []uintptr{uintptr(SIG_BLOCK), uintptr(unsafe.Pointer(&sigblock_SIGURG)), uintptr(unsafe.Pointer(&origset))})
+	runtime.ExitSyscall()
+	return func() {
+		runtime.EnterSyscall()
+		runtime.CallLeFuncByPtr(runtime.XplinkLibvec+syscall.SYS_PTHREAD_SIGMASK<<4, []uintptr{uintptr(SIG_SETMASK), uintptr(unsafe.Pointer(&origset)), uintptr(unsafe.Pointer(nil))})
+		runtime.ExitSyscall()
+		runtime.UnlockOSThread()
+	}
 }
