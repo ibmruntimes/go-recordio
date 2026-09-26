@@ -54,6 +54,8 @@ func (rs RecordStream) Nil() bool {
 func Fopen(fname string, mode string) (rs RecordStream) {
 	fnameBytes := []byte(fname + "\x00")
 	modeBytes := []byte(mode + "\x00")
+	cleanup := disableAsyncPreempt()
+	defer cleanup()
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+utils.SYS___FOPEN_A<<4, //fopen
 		[]uintptr{uintptr(unsafe.Pointer(&fnameBytes[0])),
 			uintptr(unsafe.Pointer(&modeBytes[0]))})
@@ -65,6 +67,8 @@ func Fopen(fname string, mode string) (rs RecordStream) {
 func Freopen(fname string, mode string, rs RecordStream) (rso RecordStream) {
 	fnameBytes := []byte(fname + "\x00")
 	modeBytes := []byte(mode + "\x00")
+	cleanup := disableAsyncPreempt()
+	defer cleanup()
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+utils.SYS___FREOPEN_A<<4, //freopen
 		[]uintptr{uintptr(unsafe.Pointer(&fnameBytes[0])),
 			uintptr(unsafe.Pointer(&modeBytes[0])),
@@ -76,6 +80,8 @@ func Freopen(fname string, mode string, rs RecordStream) (rso RecordStream) {
 // Flocate locates a record by Key, received as a byte slice
 // Returns 0 if successful, otherwise EOF
 func (rs RecordStream) Flocate(key []byte, options LocOptions) int {
+	cleanup := disableAsyncPreempt()
+	defer cleanup()
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+utils.SYS_FLOCATE<<4, //flocate
 		[]uintptr{rs.s,
 			uintptr(unsafe.Pointer(&key[0])),
@@ -100,6 +106,8 @@ func (rs RecordStream) Fread(buffer []byte) int {
 // Fdelrec deletes the last read record
 // Returns 0 if successful, otherwise non-zero
 func (rs RecordStream) Fdelrec() int {
+	cleanup := disableAsyncPreempt()
+	defer cleanup()
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+utils.SYS_FDELREC<<4, //fdelrec
 		[]uintptr{rs.s})
 	return int(ret)
@@ -107,6 +115,8 @@ func (rs RecordStream) Fdelrec() int {
 
 // Feof returns the last set EOF flag value
 func (rs RecordStream) Feof() bool {
+	cleanup := disableAsyncPreempt()
+	defer cleanup()
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+utils.SYS_FEOF<<4, //feof
 		[]uintptr{rs.s})
 	return int(ret) != 0
@@ -114,6 +124,8 @@ func (rs RecordStream) Feof() bool {
 
 // Ferror returns the last set error value
 func (rs RecordStream) Ferror() error {
+	cleanup := disableAsyncPreempt()
+	defer cleanup()
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+utils.SYS_FERROR<<4, //feerror
 		[]uintptr{rs.s})
 	if int(ret) == 0 {
@@ -126,6 +138,8 @@ func (rs RecordStream) Ferror() error {
 // Fupdate updates the last read record to be the new record value in buffer
 // It returns the size of the updated record
 func (rs RecordStream) Fupdate(buffer []byte) int {
+	cleanup := disableAsyncPreempt()
+	defer cleanup()
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+utils.SYS_FUPDATE<<4, //fupdate
 		[]uintptr{uintptr(unsafe.Pointer(&buffer[0])),
 			uintptr(len(buffer)),
@@ -137,6 +151,8 @@ func (rs RecordStream) Fupdate(buffer []byte) int {
 // It returns the number of bytes written.
 // Note, teh size of the record is the size of the slice.
 func (rs RecordStream) Fwrite(buffer []byte) int {
+	cleanup := disableAsyncPreempt()
+	defer cleanup()
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+utils.SYS___FWRITE_A<<4, //fwrite
 		[]uintptr{uintptr(unsafe.Pointer(&buffer[0])),
 			uintptr(1),
@@ -147,6 +163,8 @@ func (rs RecordStream) Fwrite(buffer []byte) int {
 
 // Fclose closes the stream. Returns 0 if successful, otherwise EOF.
 func (rs RecordStream) Fclose() int {
+	cleanup := disableAsyncPreempt()
+	defer cleanup()
 	ret := runtime.CallLeFuncByPtr(runtime.XplinkLibvec+utils.SYS_FCLOSE<<4, //fclose
 		[]uintptr{rs.s})
 	return int(ret)
