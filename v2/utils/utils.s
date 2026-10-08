@@ -152,3 +152,31 @@ TEXT ·Pc31(SB), NOSPLIT|NOFRAME, $0
 	MOVD R8, rc+16(FP)                             // return code
 	MOVD R0, rn+24(FP)                             // reason code if return code != 0
 	RET
+TEXT ·IfausageX(SB), NOSPLIT, $0-16
+	MOVD parm+0(FP), R1        // parm -> R1
+	MOVD R15, R2               // save R15
+
+	// Check SMF active: CVT -> SMCA -> flag byte
+	// e3 30 00 10 00 17: LLGT R3, 16(R0)
+	BYTE $0xE3; BYTE $0x30; BYTE $0x00; BYTE $0x10; BYTE $0x00; BYTE $0x17
+	// e3 33 00 c4 00 17: LLGT R3, 196(R3)
+	BYTE $0xE3; BYTE $0x33; BYTE $0x00; BYTE $0xC4; BYTE $0x00; BYTE $0x17
+	CMPBEQ R3, $0, smf_err     // If SMCA pointer is 0, SMF not active
+	// 91 04 30 00: TM 0(R3), 0x04 - test data collection active
+	BYTE $0x91; BYTE $0x04; BYTE $0x30; BYTE $0x00
+	BNE smf_active             // If bit 0x04 is on (CC != 0), proceed to SVC
+	JMP smf_err
+
+smf_active:
+	MOVD $25, R15              // R15 = 25 (IFAUSAGE router subcode for SVC 109)
+	BYTE $0x0A; BYTE $0x6D     // SVC 109
+	MOVD R15, R3               // save SVC return code in R3
+	JMP done
+
+smf_err:
+	MOVD $16, R3               // RC=16 (SMF or Usage Not Active, matches IFAUSAGE macro SMF14/SMF11)
+
+done:
+	MOVD R2, R15               // restore R15
+	MOVD R3, ret+8(FP)         // set return code
+	RET

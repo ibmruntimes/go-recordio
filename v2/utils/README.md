@@ -66,3 +66,15 @@
 
 * func Dup2(oldfd uintptr, newfd uintptr) uintptr
   Wrapper for the dup2() function
+
+* func IfausageStatus() (uintptr, error)
+  Check SMF / IFAUSAGE status on the system via IFAUSAGE REQUEST=STATUS (SVC 109)
+
+* func IfausageRegister(opts IfausageOptions) (rc uintptr, prtoken [8]byte, err error)
+  Register a product with IFAUSAGE (SVC 109) using a 31-bit parameter block
+
+* func IfausageDeregister(prtoken [8]byte) (uintptr, error)
+  Deregister a product with IFAUSAGE using the product token
+
+* func Ifausage(opts IfausageOptions) (rc uintptr, prtoken [8]byte, err error)
+  Execute a generic IFAUSAGE call

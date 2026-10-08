@@ -80,6 +80,9 @@ var AtoE = _atoE
 func Bpxcall(plist []unsafe.Pointer, bpx_offset int64)
 
 //go:nosplit
+func IfausageX(parm unsafe.Pointer) uintptr
+
+//go:nosplit
 func IefssreqX(parm unsafe.Pointer, branch_ptr unsafe.Pointer, save_area unsafe.Pointer) uintptr
 
 //go:nosplit
@@ -510,4 +513,228 @@ func (d *Dll) ResolveAll() error {
 	}
 
 	return nil
+}
+// IFAUSAGE Constants
+const (
+	IfausageRequestRegister      = 1
+	IfausageRequestDeregister    = 2
+	IfausageRequestFunctionBegin = 3
+	IfausageRequestFunctionData  = 4
+	IfausageRequestFunctionEnd   = 5
+	IfausageRequestStatus        = 6
+
+	IfausageDomainAddrsp = 1
+	IfausageDomainTask   = 2
+
+	IfausageScopeAll      = 1
+	IfausageScopeFunction = 2
+
+	IfausageFormatCpuTime = 1
+	IfausageFormatBinary  = 2
+	IfausageFormatFloat   = 3
+
+	IfausageUnauthservBase   = 1
+	IfausageUnauthservLevel1 = 2
+
+	IfausageValidateNo = 0x80
+	IfausageFbfeYes    = 0x40
+)
+
+// IfausageParmBlock represents the 104-byte parameter list for IFAUSAGE macro
+type IfausageParmBlock struct {
+	Prefix          uint32   // +0x00: constant 0
+	ID              [8]byte  // +0x04: constant "IFAUSAGE" (EBCDIC)
+	PlistLen        uint16   // +0x0C: 104
+	Version         byte     // +0x0E: 1
+	Request         byte     // +0x0F: request type
+	ProdOwner       [16]byte // +0x10: product owner (EBCDIC)
+	ProdName        [16]byte // +0x20: product name (EBCDIC)
+	ProdVers        [8]byte  // +0x30: product version (EBCDIC)
+	ProdQual        [8]byte  // +0x38: product qualifier (EBCDIC)
+	ProdID          [8]byte  // +0x40: product ID (EBCDIC)
+	Domain          byte     // +0x48: domain (1=ADDRSP, 2=TASK)
+	Scope           byte     // +0x49: scope (1=ALL, 2=FUNCTION)
+	Rsv0001         byte     // +0x4A: reserved
+	Flags           byte     // +0x4B: flags (0x80=VALIDATE_NO, 0x40=FBFE_YES)
+	PrtokenAddr     uint32   // +0x4C: pointer to 8-byte PRTOKEN (below 2G)
+	BegtimeAddr     uint32   // +0x50: pointer to begin time
+	DataAddr        uint32   // +0x54: pointer to data
+	Format          byte     // +0x58: format (1=CPUTIME, 2=BINARY, 3=FLOAT)
+	Unauthserv      byte     // +0x59: unauthserv (1=BASE, 2=LEVEL1)
+	Rsv0002         [2]byte  // +0x5A: reserved
+	CurrentdataAddr uint32   // +0x5C: pointer to current data
+	EnddataAddr     uint32   // +0x60: pointer to end data
+	EndtimeAddr     uint32   // +0x64: pointer to end time
+}
+
+// IfausageWorkArea combines the parameter block and an 8-byte PRTOKEN buffer in 31-bit storage.
+type IfausageWorkArea struct {
+	ParmBlock IfausageParmBlock
+	Prtoken   [8]byte
+}
+
+// IfausageOptions provides input options for IFAUSAGE requests.
+type IfausageOptions struct {
+	Request    byte
+	ProdOwner  string
+	ProdName   string
+	ProdVers   string
+	ProdQual   string
+	ProdID     string
+	Domain     byte
+	Scope      byte
+	Unauthserv byte
+	ValidateNo bool
+	Prtoken    [8]byte
+}
+
+// NewIfausageWorkArea allocates an IfausageWorkArea in 31-bit storage (below 2GB).
+func NewIfausageWorkArea() *IfausageWorkArea {
+	ptr := Malloc31(int(unsafe.Sizeof(IfausageWorkArea{})))
+	if ptr == nil {
+		return nil
+	}
+	wa := (*IfausageWorkArea)(ptr)
+	wa.ParmBlock.Prefix = 0
+	copy(wa.ParmBlock.ID[:], "IFAUSAGE")
+	AtoE(wa.ParmBlock.ID[:])
+	wa.ParmBlock.PlistLen = 104
+	wa.ParmBlock.Version = 1
+	wa.ParmBlock.PrtokenAddr = uint32(uintptr(unsafe.Pointer(&wa.Prtoken[0])))
+	return wa
+}
+
+// Free releases the 31-bit allocated IfausageWorkArea.
+func (wa *IfausageWorkArea) Free() {
+	if wa != nil {
+		Free(unsafe.Pointer(wa))
+	}
+}
+
+func copyPaddedEbcdic(dest []byte, src string, defaultVal string) {
+	s := src
+	if s == "" {
+		s = defaultVal
+	}
+	for i := range dest {
+		dest[i] = ' '
+	}
+	copy(dest, s)
+	AtoE(dest)
+}
+
+// Call executes the IFAUSAGE request configured in the work area.
+func (wa *IfausageWorkArea) Call() uintptr {
+	return IfausageX(unsafe.Pointer(&wa.ParmBlock))
+}
+
+// IfausageStatus queries SMF / IFAUSAGE status on the system.
+func IfausageStatus() (uintptr, error) {
+	wa := NewIfausageWorkArea()
+	if wa == nil {
+		return 0, fmt.Errorf("failed to allocate 31-bit storage for IFAUSAGE")
+	}
+	defer wa.Free()
+
+	wa.ParmBlock.Request = IfausageRequestStatus
+	rc := wa.Call()
+	return rc, nil
+}
+
+// IfausageRegister registers a product with IFAUSAGE. Returns return code and 8-byte product token.
+func IfausageRegister(opts IfausageOptions) (rc uintptr, prtoken [8]byte, err error) {
+	wa := NewIfausageWorkArea()
+	if wa == nil {
+		return 0, prtoken, fmt.Errorf("failed to allocate 31-bit storage for IFAUSAGE")
+	}
+	defer wa.Free()
+
+	wa.ParmBlock.Request = IfausageRequestRegister
+	copyPaddedEbcdic(wa.ParmBlock.ProdOwner[:], opts.ProdOwner, "IBM")
+	copyPaddedEbcdic(wa.ParmBlock.ProdName[:], opts.ProdName, "PRODUCT")
+	copyPaddedEbcdic(wa.ParmBlock.ProdVers[:], opts.ProdVers, "01.00.00")
+	copyPaddedEbcdic(wa.ParmBlock.ProdQual[:], opts.ProdQual, "NONE")
+	copyPaddedEbcdic(wa.ParmBlock.ProdID[:], opts.ProdID, "NONE")
+
+	if opts.Domain == 0 {
+		wa.ParmBlock.Domain = IfausageDomainAddrsp
+	} else {
+		wa.ParmBlock.Domain = opts.Domain
+	}
+
+	if opts.Scope != 0 {
+		wa.ParmBlock.Scope = opts.Scope
+	}
+
+	if opts.Unauthserv == 0 {
+		wa.ParmBlock.Unauthserv = IfausageUnauthservBase
+	} else {
+		wa.ParmBlock.Unauthserv = opts.Unauthserv
+	}
+
+	if opts.ValidateNo {
+		wa.ParmBlock.Flags |= IfausageValidateNo
+	}
+
+	rc = wa.Call()
+	if rc == 0 {
+		prtoken = wa.Prtoken
+	}
+	return rc, prtoken, nil
+}
+
+// IfausageDeregister deregisters a product with IFAUSAGE using the given product token.
+func IfausageDeregister(prtoken [8]byte) (uintptr, error) {
+	wa := NewIfausageWorkArea()
+	if wa == nil {
+		return 0, fmt.Errorf("failed to allocate 31-bit storage for IFAUSAGE")
+	}
+	defer wa.Free()
+
+	wa.ParmBlock.Request = IfausageRequestDeregister
+	wa.Prtoken = prtoken
+	rc := wa.Call()
+	return rc, nil
+}
+
+// Ifausage executes a generic IFAUSAGE call given the provided options.
+func Ifausage(opts IfausageOptions) (rc uintptr, prtoken [8]byte, err error) {
+	wa := NewIfausageWorkArea()
+	if wa == nil {
+		return 0, prtoken, fmt.Errorf("failed to allocate 31-bit storage for IFAUSAGE")
+	}
+	defer wa.Free()
+
+	wa.ParmBlock.Request = opts.Request
+	copyPaddedEbcdic(wa.ParmBlock.ProdOwner[:], opts.ProdOwner, "IBM")
+	copyPaddedEbcdic(wa.ParmBlock.ProdName[:], opts.ProdName, "PRODUCT")
+	copyPaddedEbcdic(wa.ParmBlock.ProdVers[:], opts.ProdVers, "01.00.00")
+	copyPaddedEbcdic(wa.ParmBlock.ProdQual[:], opts.ProdQual, "NONE")
+	copyPaddedEbcdic(wa.ParmBlock.ProdID[:], opts.ProdID, "NONE")
+
+	if opts.Domain != 0 {
+		wa.ParmBlock.Domain = opts.Domain
+	} else {
+		wa.ParmBlock.Domain = IfausageDomainAddrsp
+	}
+
+	if opts.Scope != 0 {
+		wa.ParmBlock.Scope = opts.Scope
+	}
+
+	if opts.Unauthserv != 0 {
+		wa.ParmBlock.Unauthserv = opts.Unauthserv
+	} else {
+		wa.ParmBlock.Unauthserv = IfausageUnauthservBase
+	}
+
+	if opts.ValidateNo {
+		wa.ParmBlock.Flags |= IfausageValidateNo
+	}
+
+	wa.Prtoken = opts.Prtoken
+
+	rc = wa.Call()
+	prtoken = wa.Prtoken
+	return rc, prtoken, nil
 }
