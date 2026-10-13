@@ -59,3 +59,27 @@ This example sends GO print() etc output to SYSPRINT
 ** Note that BATCH mode is not officially supported, it is only 
 used to demonstrate this package.
 
+
+Example 5:
+
+testesds.go
+
+```
+go build testesds.go
+```
+
+Reading and writing a VSAM ESDS (entry-sequenced data set). An ESDS
+can be used like a sequential data set: Fwrite appends records,
+Fread reads them sequentially, and Flocate(key, Loc_RBA_EQ) provides
+random access by RBA (pass the RBA as a right-justified binary value,
+4 or 8 bytes). Fupdate updates the last read record in place.
+Fdelrec is not supported for ESDS.
+
+Note: when defining the cluster with IDCAMS, code NONINDEXED
+explicitly, otherwise IDCAMS defaults to a KSDS with KEYS(64,0):
+
+```
+DEFINE CLUSTER (NAME(HLQ.ESDS) NONINDEXED LOG(NONE) UNIQUE -
+   TRACKS(1,1) RECSZ(80,80))
+```
+
