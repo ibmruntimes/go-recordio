@@ -41,7 +41,7 @@ import zosrecordio "github.com/ibmruntimes/go-recordio"
 ### Repo layout
 
 * `v2/record.go`, `v2/utils/`, `v2/record_test.go` — current code
-* `v2/example-*/` — current examples (recordio, cobol, db2, dvm, etc.)
+* `v2/example-*/` — current examples (recordio, cobol, db2, dvm, vsamdb, etc.)
 * `record.go`, `utils/`, `example/` — legacy v1 code, frozen
 * `v2/` has its own `LICENSE`, `CONTRIBUTING.md`, `MAINTAINERS.md`
 
